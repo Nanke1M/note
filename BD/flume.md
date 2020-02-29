@@ -1,4 +1,7 @@
+
+
 # Flume
+
 ## 一、flume概述
 ### 1. 定义
 ​    	Flume 是Cloudera 提供的一个高可用的，高可靠的，分布式的海量日志采集、聚合和传输的系统。Flume 基于流式架构，灵活简单。
@@ -9,7 +12,7 @@
 ​    Agent是一个JVM 进程，它以事件的形式将数据从源头送至目的。 Agent主要有3个部分组成，Source、Channel、Sink。
 
 #### 2.2 source
-​		Source是负责接收数据到Flume Agent的组件。Source组件可以处理各种类型、各种格式的日志数据，包括avro、thrift、exec、jms、spooling directory、netcat、sequence generator、syslog、http、legacy。 
+​		Source是负责接收数据到Flume Agent的组件。Source组件可以处理各种类型、各种格式的日志数据，包括**avro**、thrift、**exec**、jms、**spooling** directory、**netcat**、sequence generator、syslog、http、legacy。 
 
 #### 2.3 channel
 ​		Channel是位于Source 和Sink 之间的缓冲区。因此，Channel允许Source 和Sink运作在不同的速率上。Channel 是线程安全的，可以同时处理几个 Source 的写入操作和几个Sink的读取操作。   
@@ -21,3 +24,8 @@
 ​    	File Channel 将所有事件写到磁盘。因此在程序关闭或机器宕机的情况下不会丢失数
 
 ![image-20200229085925076](image/image-20200229085925076.png)
+
+### 3.flume事务
+![](image/2020-02-29-10-59-48.png)
+### 4.agent原理
+![](image/2020-02-29-11-00-29.png)
