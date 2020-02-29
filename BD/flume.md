@@ -39,7 +39,7 @@
 ​		上传解压，配置flume/conf下**flume-env.sh**
 
 ```xml
-export JAVA_HOME=/opt/module/jdk1.8.0_8u181
+export JAVA_HOME=/opt/module/jdk1.8.0_181
 ```
 
 ## 三、案例
