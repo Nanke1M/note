@@ -1,0 +1,525 @@
+# Hadoop
+
+Hadoop 安装\配置\验证\基本操作
+0. 主要介绍:
+    00. 需要的软件
+    1. VMWare 安装 & 安装 CentOS 7
+    2. 安装远程控制软件
+    3. 为在CentOS 7 上安装 Hadoop 进行系统配置
+    4. 单机模式配置和部署
+    5. 伪分布式模式配置和部署
+    6. 集群模式配置和部署
+    7. 启动 Hadoop 集群 & 验证 & 基本操作
+    
+00. 需要软件
+    三种方式: 
+    
+        1. 物理机器集群方式
+            *2. VMWare ESX Server
+            +3. VMWare Workstation 
+            HDD 15G~20G
+    需要软件:
+            VMWare Workstation Pro 14
+            Cent OS 7
+            for Linux Java SE
+            for Linux Eclipse
+            Hadoop 3.0.3 for Linux 
+            远程控制软件 - Xshell
+            CLI (CommandLineInterface)
+                控制操作
+            GUI 
+                完成文件FTP
+2. 安装 VMWare Workstation Pro 14
+
+3. VMWare 14 安装 Cent OS 7
+    https://www.centos.org/ 
+        DVD ISO
+    ***
+    1. 虚拟机名称: HadoopMaster | HadoopSlave01 | HadoopSlave02
+        位置:  e:\vm\master | slave01 | slave02
+        15G, 单个文件 (所在的硬盘的文件系统不能是 Fat32, 最好NTFS|exFat)
+        内存\CPU
+        选中 虚拟化
+        选择桥接方式
+    2. Linux 安装过程
+        中文
+        GNOME桌面(GNOME应用程序+互联网应用程序)
+        网络和主机名: 
+            主机名: master.hadoop | slave01.hadoop | slave02.hadoop
+        root 密码: root
+        创建用户:
+            icss|icss - 管理员
+        应用程序\系统工具\设置\电源\节电\从不
+        屏幕上方右侧, 单击"zh"可以切换中文输入法
+        /*
+            master :  10.5.67.207
+            slave01 : 10.5.66.55
+            slave02 : 10.5.64.215
+            outhost: 10.96.150.52
+            Gateway: 10.5.0.1
+        */
+
+4. 安装 xshell & xftp
+
+5. 配置 Linux 
+    1. 配置时钟同步
+        1. 不能联网, 手工设置
+        2. 使用完成时钟同步 -- 所有集群的机器
+            su root 
+            /usr/sbin/ntpdate cn.pool.ntp.org
+        3. 完成定时任务,实现时钟同步 -- 所有集群的机器
+            crontab -e      // 进入 vi 编辑模式
+            -->> i 
+            0 1 * * * /usr/sbin/ntpdate cn.pool.ntp.org 
+            esc : wq!
+        4. 验证: 
+            date 
+    2. 配置网络环境, 并设置开机启动网络连接
+        1. GUI 
+            应用程序\系统工具\设置\网络 
+                开启有线连接
+                齿轮图标, 设置具体的网络设置
+        2. CLI 
+            root 操作 su root 
+            cd /etc/sysconfig/network-script
+            gedit | vi ifcfg_网络适配器名称
+                ONBOOT="yes"    # 开启自动启用网络连接
+            重启网络配置, 使修改生效
+                service network restart
+            exit
+        3. 验证: 
+            ifconfig 
+            ip addr  
+            ip -4 addr 
+    3. 配置主机名, 配置 hosts 文件
+        目的: 通过主机名访问远程|Linux主机
+            主机名: hostname|domainname
+        root
+            hostnamectl set-hostname master.hadoop
+            hostname 
+            vi /etc/hosts 
+                localhost
+                master master.hadoop
+                slave01 slave01.hadoop
+                slave02 slave02.hadoop
+                outhost
+        验证:
+            hostname 
+            cat /etc/hostname 
+    4. 安装 JDK - JavaSE 
+        https://wiki.apache.org/hadoop/HadoopJavaVersions
+        Oracle Java SE for Linux
+    -- 下载\上传\解压\配置 (Linux环境变量)
+        root 
+            /usr/java
+            tar -xzvf 
+        icss 
+            vi .bash_profile 
+            末尾加入:
+                export JAVA_HOME=/usr/java/jdk1.8.0_162
+                export PATH=$JAVA_HOME/bin:$PATH
+            验证:    
+                执行: source .bash_profile 让环境变量起作用
+                export 
+                echo $JAVA_HOME
+                echo $PATH 
+                java -version
+                javac -version
+    5. 实现 ssh 免密登录
+        目的: 
+            在集群多个主机之间批量拷贝文件不需要多次询问密码
+        思路: 
+            将所有的集群节点的公钥统一归集到 authorized_keys 中, 并复制到集群每个节点的 .ssh 目录中
+        步骤:
+            !! icss 在 其主目录下执行
+                ssh localhost 
+                ssh master 
+                ssh slave01
+                ssh slave02
+            --- master 
+                1. 生成 master 的公钥
+                    ssh-keygen -t rsa 
+                2. 将生成的公钥放入authorized_keys
+                    cat .ssh/id_rsa.pub >> .ssh/authorized_keys
+                3. 修改 authorized_keys 文件权限
+                    chmod 600 .ssh/authorized_keys
+                4. 将 authorized_keys 复制到 slave01 icss主目录下的.ssh文件夹中
+                    scp ~/.ssh/authorized_keys icss@slave01:~/
+            --- slave01 
+                将 slave01 的公钥放入 authorized_keys
+            --- slave02 
+                将 slave02 的公钥放入 authorized_keys
+    6. 关闭防火墙 -- 推荐 root 用户实现
+        root 
+            systemctl stop firewalld.service 
+            systemctl disable firewalld.service
+            systemctl status firewalld.service
+
+6. 单机版的Hadoop的安装配置
+    下载\上传\解压\配置 (xml配置文件, 集群组成文件, *Hadoop环境变量, *Linux环境变量)
+    icss 
+        解压, 放在 hadoop3 目录下
+    配置: 
+        1. Hadoop 运行环境
+            vi ~/hadoop3/etc/hadoop/hadoop-env.sh 
+            加入:
+                export JAVA_HOME=/usr/java/jdk1.8.0_162
+        2. Linux 运行环境
+            vi ~/.bash_profile
+            加入: 
+                export HADOOP_HOME=$HOME/hadoop3
+                export HADOOP_COMMON_LIB_NATIVE_DIR=$HADOOP_HOME/lib/native
+                export  HADOOP_OPTS="-Djava.library.path=$HADOOP_HOME/lib/native:$HADOOP_COMMON_LIB_NATIVE_DIR"
+                export YARN_HOME=$HOME/hadoop
+                export HADOOP_CONF_DIR=$HADOOP_HOME/etc/hadoop
+                export YARN_CONF_DIR=$YARN_HOME/etc/hadoop
+                export HDFS_CONF_DIR=$HADOOP_HOME/etc/hadoop
+                export PATH=.:$JAVA_HOME/lib:$HADOOP_HOME/sbin:$HADOOP_HOME/bin:$PATH
+            source .bash_profile
+    验证: 
+            hadoop 
+            hadoop version
+    
+    ​        hadoop jar hadoop3/share/hadoop/mapreduce/hadoop-mapreduce-examples-3.0.3.jar pi 10 10
+    
+    ​        icss 主目录下执行
+    ​    cd hadoop3
+    ​    mkdir input
+    ​    cp etc/hadoop/*.xml input
+    ​    hadoop jar share/hadoop/mapreduce/hadoop-mapreduce-examples-3.0.3.jar grep input output/xml 'dfs[a-z.]+'
+    ​    cat output/xml/*
+     0. 安装方式 
+        1. 确定运行模式 
+        2. 确定运行用户
+        3. 下载 Hadoop 安装文件 
+        4. 上传 Hadoop 安装文件 
+        5. 解压  Hadoop 安装文件
+        6. 完成配置: 
+            xml 配置文件(4个)
+            集群组成的声明文件
+            Linux 运行环境
+            Hadoop 运行环境
+    1. Hadoop 三种运行模式 
+        1. 独立(本地)模式
+            无需守护进程, 所有的程序都在本机的同一个 JVM 中运行
+            用于测试\调试 MapReduce 程序, 在开发阶段使用 
+        2. 伪分布模式 
+            守护进程运行在本地机器, 模拟一个小规模的集群 
+            掌握\运行\练习 Hadoop 的基本概念&命令 
+        3. 集群(全分布)模式 
+            守护进程运行在集群中每台机器中
+            完成 Hadoop 全部概念 
+        *** 联邦模式 应用在 HA 模式下
+    2. 讨论运行 Hadoop 用户 
+        Hadoop 守护进程 + Hadoop 应用程序
+        : 应用程序用户 === icss
+    3. Hadoop 下载 
+        https://hadoop.apache.org/releases.html
+        src * bin
+    4. Hadoop 相关配置 : 所有的配置文件并不是所有的运行模式均会用到
+        1. xml 配置文件  对应模板文件(xxxx-default.xml|.html  --- 可以使用 find 命令查询)
+                    find /home/icss/hadoop3/ -name 'core-default.xml'
+            1. core-site.xml
+                核心配置文件, 配置 Hadoop 集群核心通用属性 
+            2. hdfs-site.xml
+                Hadoop 分布式文件系统的配置文件, 配置 HDFS 属性
+            3. mapred-site.xml 
+                MapReduce 对数据进行操作的运算框架的配置文件, 配置 MapReduce 属性 
+            4. yarn-site.xml 
+                YARN 是对 Hadoop 组件进行资源管理的框架的配置文件, 配置 YARN 属性
+        2. 集群组成的声明文件
+            workers 文件, 保存 Hadoop 集群中所有的数据节点的信息 
+        3. Hadoop 运行环境
+            hadoop-env.sh : Hadoop 运行的环境变量的设置
+            mapred-env.sh : MapReduce 运行的环境变量的设置
+            yarn-env.sh : YARN 运行的环境变量的设置 
+        4. Linux 运行环境 
+            .bash_profile : 配置各种主目录
+**** /home/icss/hadoop3     
+1. 独立(本地)模式
+    下载\上传\解压 
+        统一: 
+            Hadoop 安装路径|安装目录|主目录
+            /home/icss/hadoop3
+    配置  & 运行|启动 
+        1. 配置 
+            * Hadoop 运行环境:  hadoop-env.sh
+                vi ~/hadoop3/etc/hadoop/hadoop-env.sh 
+                加入:
+                    export JAVA_HOME=/usr/java/jdk1.8.0_162
+            * Linux 运行环境: ~/.bash_profile 
+                vi ~/.bash_profile
+                加入: 
+                    export HADOOP_HOME=$HOME/hadoop3
+                    export HADOOP_COMMON_LIB_NATIVE_DIR=$HADOOP_HOME/lib/native
+                    export  HADOOP_OPTS="-Djava.library.path=$HADOOP_HOME/lib/native:$HADOOP_COMMON_LIB_NATIVE_DIR"
+                    export YARN_HOME=$HOME/hadoop3
+                    export HADOOP_CONF_DIR=$HADOOP_HOME/etc/hadoop
+                    export YARN_CONF_DIR=$YARN_HOME/etc/hadoop
+                    export HDFS_CONF_DIR=$HADOOP_HOME/etc/hadoop
+                    export PATH=.:$JAVA_HOME/lib:$HADOOP_HOME/sbin:$HADOOP_HOME/bin:$PATH
+        2. 运行: 
+            0. 让运行环境变量生效
+                source .bash_profile
+                只用在不运行守护进程是才需要执行下述操作
+                    在 ~/hadoop3/etc/hadoop/ 目录下, 执行 
+                        ./hadoop-env.sh 
+            1. 运行 
+                1. 运行守护进程 ( 独立(本地)模式 不需要)
+                2. 运行应用程序 
+                     hadoop jar ~/hadoop3/share/hadoop/mapreduce/hadoop-mapreduce-examples-3.0.3.jar pi 10 10
+    验证: 
+        算PI 
+         hadoop jar ~/hadoop3/share/hadoop/mapreduce/hadoop-mapreduce-examples-3.0.3.jar pi 10 10
+    
+2. 伪分布模式   
+    icss 用户, 在主目录下, cd 
+    0. 验证环境准备 
+        ssh localhost 
+    1. 下载\上传\解压 
+        mv ~/software/hadoop-3.0.3.tar.gz ~/
+        tar -xzvf ~/hadoop-3.0.3.tar.gz 
+        mv ~/hadoop-3.0.3 ~/hadoop3
+    2. 配置 & 运行 
+        1. 配置: 
+            1. 配置 Hadoop 运行环境 : hadoop-env.sh
+                vi ~/hadoop3/etc/hadoop/hadoop-env.sh 
+                加入:
+                    export JAVA_HOME=/usr/java/jdk1.8.0_162
+            2. 配置 Linux 运行环境 : ~/.bash_profile 
+                vi ~/.bash_profile
+                加入: 
+                    export HADOOP_HOME=$HOME/hadoop3
+                    export HADOOP_COMMON_LIB_NATIVE_DIR=$HADOOP_HOME/lib/native
+                    export HADOOP_OPTS="-Djava.library.path=$HADOOP_HOME/lib/native:$HADOOP_COMMON_LIB_NATIVE_DIR"
+                    export YARN_HOME=$HOME/hadoop3
+                    export HADOOP_CONF_DIR=$HADOOP_HOME/etc/hadoop
+                    export YARN_CONF_DIR=$YARN_HOME/etc/hadoop
+                    export HDFS_CONF_DIR=$HADOOP_HOME/etc/hadoop
+                    export PATH=.:$JAVA_HOME/lib:$HADOOP_HOME/sbin:$HADOOP_HOME/bin:$PATH
+            3. 配置 xml 文件 之一: 配置 Hadoop核心和分布式文件系统
+                1. ~/hadoop3/etc/hadoop/core-site.xml 
+                    加入: 
+                        <configuration>
+                          <property>
+                            <name>fs.defaultFS</name>
+                            <value>hdfs://localhost:9000</value>
+                          </property>
+                        </configuration>
+                2. ~/hadoop3/etc/hadoop/hdfs-site.xml 
+                    加入: 
+                        <configuration>
+                          <property>
+                            <name>dfs.replication</name>
+                            <value>1</value>
+                          </property>
+                        </configuration>
+
+                /// 运行 & 启动 Hadoop HDFS 
+                    *** 日志: /home/icss/hadoop3/logs
+                    0. 让运行环境变量生效
+                        source .bash_profile
+                    1. 启动 Hadoop HDFS 
+                        1. 格式化 HDFS文件系统, 首先格式 namenode (! 最初只做一次)
+                            hdfs namenode -format 
+                        2. 启动守护进程(Hadoop 的 HDFS 的守护进程)
+                            start-dfs.sh 
+                            // 退出守护进程(Hadoop 的 HDFS 的守护进程)
+                            stop-dfs.sh 
+                    3. 验证: 
+                        jps
+                        http://localhost:9870
+        
+            3. 配置 xml 文件 之二: 配置 MapReduce 和 YARN
+                3. ~/hadoop3/etc/hadoop/mapred-site.xml
+                    加入: 
+                        <configuration>
+                          <property>
+                            <name>mapreduce.framework.name</name>
+                            <value>yarn</value>
+                          </property>
+                        </configuration>
+                4. ~/hadoop3/etc/hadoop/yarn-site.xml
+                    加入: 
+                        <configuration>
+                          <property>
+                            <name>yarn.nodemanager.aux-services</name>
+                            <value>mapreduce-shuffle</value>
+                          </property>
+                        </configuration>
+
+                /// 运行 & 启动 Hadoop HDFS 
+                    *** 日志: /home/icss/hadoop3/logs
+                    1. 启动 Hadoop HDFS 
+                        1. 启动守护进程(Hadoop 的 HDFS 的守护进程)
+                            start-dfs.sh 
+                            // 退出守护进程(Hadoop 的 HDFS 的守护进程)
+                            stop-dfs.sh 
+                        2. 启动守护进程(Hadoop 的 MapReduce & YARN 的守护进程)
+                            start-yarn.sh 
+                            // 退出守护进程(Hadoop 的 MapReduce & YARN 的守护进程)
+                            stop-yarn.sh 
+                        -- 启动全部守护进程 : start-all.sh
+                        -- 退出全部守护进程 : stop-all.sh
+                            
+                    2. 验证: 
+                        jps
+                        http://localhost:9870
+    
+3. 集群(全分布)模式
+    安装的总体思路:
+        icss 在 master 完成配置, 并将相关的配置文件复制到其他集群中的机器上
+    0. 当前状态: 
+        三台准备环境配置完成, 所有的网络互通
+    1. 下载\上传\解压 
+        同上 
+    2. 配置 & 运行 
+        1. 配置 Hadoop 运行环境 
+            vi ~/hadoop3/etc/hadoop/hadoop-env.sh
+            加入:
+                export JAVA_HOME=/usr/java/jdk1.8.0_162
+            vi ~/hadoop3/etc/hadoop/yarn-env.sh
+            加入:
+                export JAVA_HOME=/usr/java/jdk1.8.0_162
+        2. 配置 xml 配置文件  ~/hadoop3/etc/hadoop 目录下
+            1. core-site.xml 
+                <configuration>
+                  <property>
+                    <name>fs.defaultFS</name>
+                    <value>hdfs://master:9000</value>
+                  </property>
+                  <property>
+                    <name>hadoop.tmp.dir</name>
+                    <value>/home/icss/hadoopdata</value>
+                  </property>
+                </configuration>
+            2. hdfs-site.xml 
+                <configuration>
+                  <property>
+                    <name>dfs.replication</name>
+                    <value>2</value>
+                  </property>
+                </configuration>
+            3. mapred-site.xml 
+                    ** hadoop classpath 获取 参数 mapreduce.application.classpath 的 value 的值
+                <configuration>
+                  <property>
+                    <name>mapreduce.framework.name</name>
+                    <value>yarn</value>
+                  </property>
+                  <property>
+                    <name>mapreduce.application.classpath</name>
+                    <value>/home/icss/hadoop3/etc/hadoop:/home/icss/hadoop3/share/hadoop/common/lib/*:/home/icss/hadoop3/share/hadoop/common/*:/home/icss/hadoop3/share/hadoop/hdfs:/home/icss/hadoop3/share/hadoop/hdfs/lib/*:/home/icss/hadoop3/share/hadoop/hdfs/*:/home/icss/hadoop3/share/hadoop/mapreduce/lib/*:/home/icss/hadoop3/share/hadoop/mapreduce/*:/home/icss/hadoop3/share/hadoop/yarn:/home/icss/hadoop3/share/hadoop/yarn/lib/*:/home/icss/hadoop3/share/hadoop/yarn/*</value>
+                  </property>
+                </configuration>
+            4. yarn-site.xml 
+                <configuration>
+                    <property>
+                        <name>yarn.nodemanager.aux-services</name>
+                        <value>mapreduce_shuffle</value>
+                    </property>
+                        
+                    <property>
+                        <name>yarn.resourcemanager.address</name>
+                        <value>master:18040</value>
+                    </property>
+    
+                    <property>
+                        <name>yarn.resourcemanager.scheduler.address</name>
+                        <value>master:18030</value>
+                    </property>
+    
+                    <property>
+                        <name>yarn.resourcemanager.resource-tracker.address</name>
+                        <value>master:18025</value>
+                    </property>
+    
+                    <property>
+                        <name>yarn.resourcemanager.admin.address</name>
+                        <value>master:18141</value>
+                    </property>
+    
+                    <property>
+                        <name>yarn.resourcemanager.webapp.address</name>
+                        <value>master:18080</value>
+                    </property>
+                    <property>
+                    <name>yarn.application.classpath</name>
+                    <value>/home/icss/hadoop3/etc/hadoop:/home/icss/hadoop3/share/hadoop/common/lib/*:/home/icss/hadoop3/share/hadoop/common/*:/home/icss/hadoop3/share/hadoop/hdfs:/home/icss/hadoop3/share/hadoop/hdfs/lib/*:/home/icss/hadoop3/share/hadoop/hdfs/*:/home/icss/hadoop3/share/hadoop/mapreduce/lib/*:/home/icss/hadoop3/share/hadoop/mapreduce/*:/home/icss/hadoop3/share/hadoop/yarn:/home/icss/hadoop3/share/hadoop/yarn/lib/*:/home/icss/hadoop3/share/hadoop/yarn/*</value>
+                    </property>
+                </configuration>
+        3. 集群组成的声明文件 
+            vi ~/hadoop3/etc/hadoop/workers 
+            加入: 
+                slave01
+                slave02
+        ---- 将上述 master 上的 Hadoop 相关配置, 复制到集群中其他节点上
+            scp -r hadoop3 slave01:~/
+            scp -r hadoop3 slave02:~/
+        4. 配置 Linux 运行环境 
+            -- master 
+                vi ~/.bash_profile, 加入:
+                    export HADOOP_HOME=$HOME/hadoop3
+                    export HADOOP_COMMON_LIB_NATIVE_DIR=$HADOOP_HOME/lib/native
+                    export HADOOP_OPTS="-Djava.library.path=$HADOOP_HOME/lib/native:$HADOOP_COMMON_LIB_NATIVE_DIR"
+                    export YARN_HOME=$HOME/hadoop3
+                    export HADOOP_CONF_DIR=$HADOOP_HOME/etc/hadoop
+                    export YARN_CONF_DIR=$YARN_HOME/etc/hadoop
+                    export HDFS_CONF_DIR=$HADOOP_HOME/etc/hadoop
+                    export PATH=.:$JAVA_HOME/lib:$HADOOP_HOME/sbin:$HADOOP_HOME/bin:$PATH  
+                source .bash_profile 
+            -- slave01 & slave02 同上
+        !!! 在集群所有节点上, 创建 hadoopdata 目录
+            mkdir /home/icss/hadoopdata
+        === 启动集群 
+            格式化: 
+                hdfs namenode -format 
+            启动守护进程: 
+                master - start-all.sh 
+            停止守护进程: (停止 Hadoop)
+                master - stop-all.sh 
+    3. 验证 & 简单操作
+        1. jps -- 集群所有节点的守护进程正常运行的
+            [icss@master ~]$ jps
+                4672 Jps
+                3896 NameNode
+                4139 SecondaryNameNode
+                4367 ResourceManager
+            [icss@slave01 ~]$ jps
+                3480 NodeManager
+                3609 Jps
+                3355 DataNode
+            [icss@slave02 ~]$ jps
+                3312 DataNode
+                3449 NodeManager
+                3578 Jps
+        2. hadoopdata 数据目录 
+            master : dfs/name & dfs/namesecondary
+            slave01 : dfs/data
+        3. WebUI 
+            http://master:9870/
+        4. 操作 HDFS 
+            hdfs dfs -ls /
+            hdfs dfs -mkdir /user
+                逐一创建 /user/icss/input 
+            hdfs dfs -put 本地文件 /user/icss/input 
+        5. MR 
+            1. 算 pi 
+                hadoop jar hadoop3/share/hadoop/mapreduce/hadoop-mapreduce-examples-3.0.3.jar pi 5 5
+            2. Wordcount 
+                hdfs dfs -put  ~/hadoop3/etc/hadoop/*.xml  /user/icss/input
+                hadoop jar hadoop3/share/hadoop/mapreduce/hadoop-mapreduce-examples-3.0.3.jar grep /user/icss/input /output/xml 'dfs[a-z.]+'
+                hdfs dfs -cat /output/xml/*
+                
+
+/*  解决 Hadoop 执行 MapReduce 任务时, 内存不足|溢出的错误: 
+    在集群所有节点的 yarn-site.xml 中加入: 
+    <property>
+        <name>yarn.nodemanager.pmem-check-enabled</name>
+        <value>false</value>
+    </property>
+    <property>
+        <name>yarn.nodemanager.vmem-pmem-ratio</name>
+        <value>10</value>
+    </property>    
+    ​          
