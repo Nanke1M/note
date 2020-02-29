@@ -1,18 +1,3 @@
-## 启动客户端
-    spark-shell --master spark://master:7077
-    spark-shell --master yarn
-## 运行示例计算π值
-    spark-submit --master spark://master:7077  --class org.apache.spark.examples.SparkPi ./spark/examples/jars/spark-examples_2.11-2.4.4.jar 10000
-    spark-submit --class org.apache.spark.examples.SparkPi --master yarn --deploy-mode client spark/examples/jars/spark-examples_2.11-2.4.4.jar 100
-## yarn模式图解
-   ![](image/2020-02-06-16-24-22.png)
-## javaIO
-   ![](image/2020-02-06-17-49-35.png)
-
-   ![](image/2020-02-06-17-51-18.png)
-## RDD
-   ![](image/2020-02-07-13-30-41.png)
-
 # Spark
 
 ##  第1章 Spark概述
@@ -54,7 +39,7 @@
 
 1. 把用户程序转为作业（JOB）
 
-2.  跟踪Executor的运行状况
+2. 跟踪Executor的运行状况
 3. 为执行器节点调度任务
 4. UI展示应用运行状况
 
@@ -78,11 +63,11 @@
 + 官方求PI案例
 
    bin/spark-submit \
-  --class org.apache.spark.examples.SparkPi \
-  --executor-memory 1G \
-  --total-executor-cores 2 \
-  ./examples/jars/spark-examples_2.11-2.1.1.jar \
-  100
+     --class org.apache.spark.examples.SparkPi \
+     --executor-memory 1G \
+     --total-executor-cores 2 \
+     ./examples/jars/spark-examples_2.11-2.1.1.jar \
+     100
 
 + 基本语法
 
@@ -213,7 +198,7 @@
 
 1. 修改spark-default.conf.template名称
 
-​	[atguigu@master conf]$ mv spark-defaults.conf.template spark-defaults.conf
+  ​[atguigu@master conf]$ mv spark-defaults.conf.template spark-defaults.conf
 
 2. 修改spark-default.conf文件，开启Log：
 
@@ -489,3 +474,17 @@ val conf = new SparkConf().setAppName("WC").setMaster("local[*]")
 在IDEA中配置Run Configuration，添加HADOOP_HOME变量
 
 
+# 启动客户端
+    spark-shell --master spark://master:7077
+    spark-shell --master yarn
+# 运行示例计算π值
+    spark-submit --master spark://master:7077  --class org.apache.spark.examples.SparkPi ./spark/examples/jars/spark-examples_2.11-2.4.4.jar 10000
+    spark-submit --class org.apache.spark.examples.SparkPi --master yarn --deploy-mode client spark/examples/jars/spark-examples_2.11-2.4.4.jar 100
+# yarn模式图解
+   ![](image/2020-02-06-16-24-22.png)
+# javaIO
+   ![](image/2020-02-06-17-49-35.png)
+
+   ![](image/2020-02-06-17-51-18.png)
+# RDD
+   ![](image/2020-02-07-13-30-41.png)
