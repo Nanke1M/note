@@ -1,38 +1,48 @@
-# 脚本
+# 一、脚本
 
 + zookeeper群起群关
 
+    ```shell
     #!/bin/bash
     
     case $1 in
     "start"){
         for i in neu@master neu@slave01 neu@slave02
         do
-                    echo "************$i************"
+                echo "************$i************"
                 ssh $i 'source /etc/profile && /home/neu/zookeeper/bin/zkServer.sh start'
         done
     };;
     "stop"){
         for i in neu@master neu@slave01 neu@slave02
         do
-                    echo "************$i************"
+                echo "************$i************"
                 ssh $i 'source /etc/profile && /home/neu/zookeeper/bin/zkServer.sh stop'
         done
     };;
     
     esac
+    ```
+
+    
 
 + jps
 
+    ```shell
     #!/bin/bash
     
     for i in master slave01 slave02
         do
-                    echo "************$i************"
+                echo "************$i************"
                 ssh $i 'jps'
         done
+    ```
 
-# Flume
+
+
+
+
+# 二、Flume
 
 + 运行命令
 
@@ -42,7 +52,7 @@
 
 
 
-# Kafka
+# 三、Kafka
 
 + 创建消费者
 
