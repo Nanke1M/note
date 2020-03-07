@@ -91,3 +91,13 @@
 	```
 
 	
+
+# 四、Spark
+
++ wordcount
+
+	```scala
+	sc.textFile("hdfs://master:9000/user/neu/input/wordcount.txt").flatMap(_.split(" ")).map((_,1)).reduceByKey(_+_).collect
+	```
+
+	
