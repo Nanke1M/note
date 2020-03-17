@@ -206,32 +206,337 @@ OK
 Time taken: 0.266 seconds, Fetched: 3 row(s)
 ```
 
-### 2.4 MySql安装
+### 2.4 常用交互
 
+```shell
+  [atguigu@hadoop102 hive]$ bin/hive  -help  usage: hive   -d,--define <key=value>     Variable subsitution to apply to  hive                   
+  commands. e.g. -d A=B or  --define A=B     
+  --database <databasename>    Specify the database to use   
+  -e <quoted-query-string>     SQL from command line   
+  -f <filename>          
+  SQL from files   
+  -H,--help            Print help information     
+  --hiveconf <property=value>   Use value for given property      
+  --hivevar <key=value>      Variable subsitution to apply to hive                   commands.  e.g. 
+  --hivevar A=B   -i <filename>           Initialization SQL file   
+  -S,--silent           Silent mode in  interactive shell   
+  -v,--verbose           Verbose mode (echo  executed SQL to the console)  
+```
 
+1．“-e”不进入hive的交互窗口执行sql语句
+
+```shell
+[atguigu@hadoop102 hive]$ bin/hive -e "select id from student;"
+```
+
+2．“-f”执行脚本中sql语句
+
+​     （1）在/opt/module/datas目录下创建hivef.sql文件
+
+```shell
+[atguigu@hadoop102 datas]$ touch hivef.sql
+```
+
+​       文件中写入正确的sql语句
+
+```sql
+  select * from student;
+```
+
+​     （2）执行文件中的sql语句
+
+```shell
+[atguigu@hadoop102 hive]$ bin/hive -f /opt/module/datas/hivef.sql
+```
+
+​     （3）执行文件中的sql语句并将结果写入文件中
+
+```shell
+[atguigu@hadoop102 hive]$ bin/hive -f /opt/module/datas/hivef.sql > /opt/module/datas/hive_result.txt
+```
+
+### 2.5 Hive其他命令操作
+
+1．在hive cli命令窗口中如何查看hdfs文件系统
+
+```shell
+hive> dfs -ls /;
+```
+
+2．在hive cli命令窗口中如何查看本地文件系统
+
+```shell
+hive> ! ls /opt/module/datas;
+```
+
+3．查看在hive中输入的所有历史命令
+
+​    （1）进入到当前用户的根目录/root或/home/atguigu
+
+​    （2）查看. hivehistory文件
+
+```shell
+[atguigu@hadoop102 ~]$ cat .hivehistory
+```
+
+### 2.6 Hive常见属性配置
+
+#### 2.6.1 Hive数据仓库位置配置
+
+1. Default数据仓库的最原始位置是在hdfs上的：/user/hive/warehouse路径下。
+
+2. 在仓库目录下，没有对默认的数据库default创建文件夹。如果某张表属于default数据库，直接在数据仓库目录下创建一个文件夹。
+
+3. 修改default数据仓库原始位置（将hive-default.xml.template如下配置信息拷贝到hive-site.xml文件中）。
+
+```xml
+<property> 
+	<name>hive.metastore.warehouse.dir</name>
+    <value>/user/hive/warehouse</value>  
+    <description>location of default database for the  warehouse</description> 
+ </property>  
+```
+
+​		配置同组用户有执行权限
+
+```shell
+bin/hdfs dfs -chmod g+w /user/hive/warehouse
+```
+
+#### 2.6.2 查询后信息显示配置
+
+1. 在hive-site.xml文件中添加如下配置信息，就可以实现显示当前数据库，以及查询表的头信息配置。
+
+```xml
+<property>
+ <name>hive.cli.print.header</name>
+ <value>true</value>
+</property>
+ 
+<property>
+ <name>hive.cli.print.current.db</name>
+ <value>true</value>
+</property>
+```
+
+2. 重新启动hive，对比配置前后差异。
+
+（1）配置前，如图所示
+
+![img](image/clip_image002.jpg)
+
+（2）配置后，如图所示
+
+![img](image/clip_image004.jpg)
+
+#### 2.6.3 Hive运行日志信息配置
+
+1. Hive的log默认存放在/tmp/atguigu/hive.log目录下（当前用户名下）
+
+2. 修改hive的log存放日志到/opt/module/hive/logs
+
+​    （1）修改/opt/module/hive/conf/hive-log4j.properties.template文件名称为
+
+​			hive-log4j.properties
+
+​		[atguigu@hadoop102 conf]$ pwd
+
+​			/opt/module/hive/conf
+
+​		[atguigu@hadoop102 conf]$ mv hive-log4j.properties.template hive-log4j.properties
+
+​    （2）在hive-log4j.properties文件中修改log存放位置
+
+​			hive.log.dir=/opt/module/hive/logs
+
+#### 2.6.4 参数配置方式
+
+1. 查看当前所有的配置信息
+
+	hive>set;
+
+2. 参数的配置三种方式
+
+​    （1）配置文件方式
+
+​		默认配置文件：hive-default.xml
+
+​		用户自定义配置文件：hive-site.xml
+
+   	 注意：用户自定义配置会覆盖默认配置。另外，Hive也会读入Hadoop的配置，因为Hive是作为Hadoop的客户端启动的，Hive的配置会覆盖Hadoop的配置。配置文件的设定对本机启动的所有Hive进程都有效。
+
+​	（2）命令行参数方式
+
+​		启动Hive时，可以在命令行添加-hiveconf param=value来设定参数。
+
+​	例如：
+
+​		[atguigu@hadoop103 hive]$ bin/hive -hiveconf mapred.reduce.tasks=10;
+
+​		注意：仅对本次hive启动有效
+
+​		查看参数设置：
+
+​			hive (default)> set mapred.reduce.tasks;
+
+​	（3）参数声明方式
+
+​		可以在HQL中使用SET关键字设定参数
+
+​			例如：
+
+​		hive (default)> set mapred.reduce.tasks=100;
+
+​		注意：仅对本次hive启动有效。
+
+​		查看参数设置
+
+​			hive (default)> set mapred.reduce.tasks;
+
+​		上述三种设定方式的优先级依次递增。即配置文件<命令行参数<参数声明。注意某些系统级的参数，例如log4j相关的设定，必须用前两种方式设定，因为那些参数的读取在会话建立以前已经完成了。
+
+## 第3章 Hive数据类型
+
+### 3.1 基本数据类型
+
+| Hive数据类型 | Java数据类型 |                         长度                         | 例子                                 |
+| ------------ | ------------ | :--------------------------------------------------: | ------------------------------------ |
+| TINYINT      | byte         |                   1byte有符号整数                    | 20                                   |
+| SMALINT      | short        |                   2byte有符号整数                    | 20                                   |
+| INT          | int          |                   4byte有符号整数                    | 20                                   |
+| BIGINT       | long         |                   8byte有符号整数                    | 20                                   |
+| BOOLEAN      | boolean      |               布尔类型，true或者false                | TRUE FALSE                           |
+| FLOAT        | float        |                     单精度浮点数                     | 3.14159                              |
+| DOUBLE       | double       |                     双精度浮点数                     | 3.14159                              |
+| STRING       | string       | 字符系列。可以指定字符集。可以使用单引号或者双引号。 | ‘now is the time’ “for all good men” |
+| TIMESTAMP    |              |                       时间类型                       |                                      |
+| BINARY       |              |                       字节数组                       |                                      |
+
+​		对于Hive的String类型相当于数据库的varchar类型，该类型是一个可变的字符串，不过它不能声明其中最多能存储多少个字符，理论上它可以存储2GB的字符数。
+
+### 3.2 集合数据类型
+
+表3-2
+
+| 数据类型 | 描述                                                         | 语法示例 |
+| -------- | ------------------------------------------------------------ | -------- |
+| STRUCT   | 和c语言中的struct类似，都可以通过“点”符号访问元素内容。例如，如果某个列的数据类型是STRUCT{first STRING, last STRING},那么第1个元素可以通过字段.first来引用。 | struct() |
+| MAP      | MAP是一组键-值对元组集合，使用数组表示法可以访问数据。例如，如果某个列的数据类型是MAP，其中键->值对是’first’->’John’和’last’->’Doe’，那么可以通过字段名[‘last’]获取最后一个元素 | map()    |
+| ARRAY    | 数组是一组具有相同类型和名称的变量的集合。这些变量称为数组的元素，每个数组元素都有一个编号，编号从零开始。例如，数组值为[‘John’,  ‘Doe’]，那么第2个元素可以通过数组名[1]进行引用。 | Array()  |
+
+​		Hive有三种复杂数据类型ARRAY、MAP 和 STRUCT。ARRAY和MAP与Java中的Array和Map类似，而STRUCT与C语言中的Struct类似，它封装了一个命名字段集合，复杂数据类型允许任意层次的嵌套。
+
+案例实操
+
+1. 假设某表有如下一行，我们用JSON格式来表示其数据结构。在Hive下访问的格式为
+
+```json
+ {      
+   "name": "songsong",      
+   "friends": ["bingbing" , "lili"] ,    //列表Array,       
+   "children": {           //键值Map,       
+       "xiao song": 18 ,      
+       "xiaoxiao song": 19     
+   }     
+  "address": {                      //结构Struct,
+        "street": "hui long guan" ,
+        "city": "beijing" 
+           }  
+}  
+```
+
+2. 基于上述数据结构，我们在Hive里创建对应的表，并导入数据。 
+
+创建本地测试文件test.txt
+
+```
+  songsong,bingbing_lili,xiao  song:18_xiaoxiao song:19,hui long guan_beijing  yangyang,caicai_susu,xiao  yang:18_xiaoxiao yang:19,chao yang_beijing  
+```
+
+​	注意：MAP，STRUCT和ARRAY里的元素间关系都可以用同一个字符表示，这里用“_”。
+
+3. Hive上创建测试表test
+
+```shell
+ create table test( 
+ name string, 
+ friends array<string>,
+ children map<string, int>,  
+ address struct<street:string,  city:string> 
+ ) 
+ row format delimited  
+ fields terminated by ',' 
+ collection items terminated by '_' 
+ map keys terminated by ':'  
+ lines terminated by '\n';  
+```
+
+​		字段解释：
+
+​		row format delimited fields terminated by ',' -- 列分隔符
+
+​		collection items terminated by '_'    --MAP STRUCT 和 ARRAY 的分隔符(数据分割符号)
+
+​		map keys terminated by ':'             -- MAP中的key与value的分隔符
+
+​		lines terminated by '\n';               -- 行分隔符
+
+4. 导入文本数据到测试表
+
+```shell
+hive (default)> load data local inpath "/opt/module/datas/test.txt" into table test;
+```
+
+5. 访问三种集合列里的数据，以下分别是ARRAY，MAP，STRUCT的访问方式
+
+```shell
+hive (default)> select  friends[1],children['xiao song'],address.city from test  where name="songsong";  OK  _c0    _c1   city  lili    18    beijing  Time taken: 0.076 seconds, Fetched: 1  row(s)  
+```
+
+### 3.3 类型转化
+
+​		Hive的原子数据类型是可以进行隐式转换的，类似于Java的类型转换，例如某表达式使用INT类型，TINYINT会自动转换为INT类型，但是Hive不会进行反向转化，例如，某表达式使用TINYINT类型，INT不会自动转换为TINYINT类型，它会返回错误，除非使用CAST操作。
+
+1. 隐式类型转换规则如下
+
+	（1）任何整数类型都可以隐式地转换为一个范围更广的类型，如TINYINT可以转换成INT，INT可以转换成BIGINT。
+
+	（2）所有整数类型、FLOAT和STRING类型都可以隐式地转换成DOUBLE。
+
+	（3）TINYINT、SMALLINT、INT都可以转换为FLOAT。
+
+	（4）BOOLEAN类型不可以转换为任何其它的类型。
+
+2. 可以使用CAST操作显示进行数据类型转换
+
+	例如CAST('1' AS INT)将把字符串'1' 转换成整数1；如果强制类型转换失败，如执行CAST('X' AS INT)，表达式返回空值 NULL。
 
 ## 示例
 
-    CREATE TABLE hive_hbase_emp_table( 
-    empno int, 
-    ename string, 
-    job string, 
-    mgr int, 
-    hiredate string, 
-    sal double, 
-    comm double, 
-    deptno int) 
-    STORED BY 'org.apache.hadoop.hive.hbase.HBaseStorageHandler' 
-    WITH SERDEPROPERTIES ("hbase.columns.mapping" =":key,info:ename,info:job,info:mgr,info:hiredate,info:sal,info:co mm,info:deptno") 
-    TBLPROPERTIES ("hbase.table.name" = "hbase_emp_table"); 
+```shell
+CREATE TABLE hive_hbase_emp_table( 
+empno int, 
+ename string, 
+job string, 
+mgr int, 
+hiredate string, 
+sal double, 
+comm double, 
+deptno int) 
+STORED BY 'org.apache.hadoop.hive.hbase.HBaseStorageHandler' 
+WITH SERDEPROPERTIES ("hbase.columns.mapping" =":key,info:ename,info:job,info:mgr,info:hiredate,info:sal,info:co mm,info:deptno") 
+TBLPROPERTIES ("hbase.table.name" = "hbase_emp_table"); 
+```
 
 
-    CREATE EXTERNAL TABLE hiveweibo(
-    id string,
-    name string,
-    url string,
-    focus int)
-    STORED BY 
-    'org.apache.hadoop.hive.hbase.HBaseStorageHandler'
-    WITH SERDEPROPERTIES ("hbase.columns.mapping" = ":key,info:name,info:url,info:focus") 
-    TBLPROPERTIES ("hbase.table.name" = "weibo");
+```shell
+CREATE EXTERNAL TABLE hiveweibo(
+id string,
+name string,
+url string,
+focus int)
+STORED BY 
+'org.apache.hadoop.hive.hbase.HBaseStorageHandler'
+WITH SERDEPROPERTIES ("hbase.columns.mapping" = ":key,info:name,info:url,info:focus") 
+TBLPROPERTIES ("hbase.table.name" = "weibo");
+```

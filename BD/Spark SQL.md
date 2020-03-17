@@ -459,7 +459,7 @@ val testDS = testDF.as[Coltest]
 
 6. 在对DataFrame和Dataset进行操作许多操作都需要这个包进行支持
 
-	​	import spark.implicits._
+	​	**import spark.implicits._**
 
 7. DataFrame和Dataset均可使用模式匹配获取各个字段的值和类型
 
