@@ -1538,15 +1538,285 @@ class Solution {
 
 - 解法
 
+	```java
+	class Solution {
+	    private int[] array;
+	    private int[] original;
 	
+	    private Random rand = new Random();
+	
+	    private List<Integer> getArrayCopy() {
+	        List<Integer> asList = new ArrayList<Integer>();
+	        for (int i = 0; i < array.length; i++) {
+	            asList.add(array[i]);
+	        }
+	        return asList;
+	    }
+	
+	    public Solution(int[] nums) {
+	        array = nums;
+	        original = nums.clone();
+	    }
+	    
+	    public int[] reset() {
+	        array = original;
+	        original = original.clone();
+	        return array;
+	    }
+	    
+	    public int[] shuffle() {
+	        List<Integer> aux = getArrayCopy();
+	
+	        for (int i = 0; i < array.length; i++) {
+	            int removeIdx = rand.nextInt(aux.size());
+	            array[i] = aux.get(removeIdx);
+	            aux.remove(removeIdx);
+	        }
+	
+	        return array;
+	    }
+	}
+	
+	```
+
+### 7.2 最小栈
+
+- 题目描述
+
+	![image-20200330110729359](image/image-20200330110729359.png)
+
+- 解法
+
+	```java
+	import java.util.Stack;
+	
+	public class MinStack {
+	
+	    // 数据栈
+	    private Stack<Integer> data;
+	    // 辅助栈
+	    private Stack<Integer> helper;
+	
+	    /**
+	     * initialize your data structure here.
+	     */
+	    public MinStack() {
+	        data = new Stack<>();
+	        helper = new Stack<>();
+	    }
+	
+	    // 思路 1：数据栈和辅助栈在任何时候都同步
+	
+	    public void push(int x) {
+	        // 数据栈和辅助栈一定会增加元素
+	        data.add(x);
+	        if (helper.isEmpty() || helper.peek() >= x) {
+	            helper.add(x);
+	        } else {
+	            helper.add(helper.peek());
+	        }
+	    }
+	
+	    public void pop() {
+	        // 两个栈都得 pop
+	        if (!data.isEmpty()) {
+	            helper.pop();
+	            data.pop();
+	        }
+	    }
+	
+	    public int top() {
+	        if(!data.isEmpty()){
+	            return data.peek();
+	        }
+	        throw new RuntimeException("栈中元素为空，此操作非法");
+	    }
+	
+	    public int getMin() {
+	        if(!helper.isEmpty()){
+	            return helper.peek();
+	        }
+	        throw new RuntimeException("栈中元素为空，此操作非法");
+	    }
+	}
+	```
 
 ## 8. 数学
 
+### 8.1 Fizz Buzz
 
+- 题目描述
+
+	![image-20200330112356660](image/image-20200330112356660.png)
+
+- 解法
+
+	```java
+	class Solution {
+	  public List<String> fizzBuzz(int n) {
+	
+	    // ans list
+	    List<String> ans = new ArrayList<String>();
+	
+	    for (int num = 1; num <= n; num++) {
+	
+	      boolean divisibleBy3 = (num % 3 == 0);
+	      boolean divisibleBy5 = (num % 5 == 0);
+	
+	      if (divisibleBy3 && divisibleBy5) {
+	        // Divides by both 3 and 5, add FizzBuzz
+	        ans.add("FizzBuzz");
+	      } else if (divisibleBy3) {
+	        // Divides by 3, add Fizz
+	        ans.add("Fizz");
+	      } else if (divisibleBy5) {
+	        // Divides by 5, add Buzz
+	        ans.add("Buzz");
+	      } else {
+	        // Not divisible by 3 or 5, add the number
+	        ans.add(Integer.toString(num));
+	      }
+	    }
+	
+	    return ans;
+	  }
+	}
+	```
+
+### 8.2 计数质数
+
+- 题目描述
+
+	![image-20200401134026186](image/image-20200401134026186.png)
+
+- 解法
+
+	```java
+	class Solution {
+	    public int countPrimes(int n) {
+	        /*
+	        不加入这些判断速度就慢，和leetcode判断模式有关，
+	        可以投机取巧233（从DreShadow大神题解处发现的)
+	        */
+	        // if (n>=1499978 && n<=1500007)
+	        //     return 114155;
+	        // if (n>=999980 && n<=999983)
+	        //     return 78497;
+	        // if (n>=499974 && n<=499979)
+	        //     return 41537;
+	        // if (n>=9974 && n<=10007)
+	        //     return 1229;
+	//////////////////////////////////////////////////////////////////////
+	        if(n<=2)//0和1不是质数也不是剔除数的基数
+	            return 0;
+	
+	        boolean[] nums = new boolean[n];//boolean数组代表每一个数字是不是质数，true表示非质数
+	        n = 0;//复用n减少内存使用，真的是聊胜于无，大大牺牲观赏性，直接声明个count就挺好
+	        for(int i=2;i<nums.length;i++){
+	            if(nums[i-1])//true说明已经被标示为非质数，并且它的倍数必已被标识，跳过
+	                continue;
+	            for(int j=2;(i*j)<nums.length;j++){//j是权重，i的倍数都标记为非质数
+	                nums[i*j-1] = true;
+	            }
+	            n++;//质数的数量加一
+	        }
+	        return n;
+	    }
+	}
+	```
+
+### 8.3 3的幂
+
+- 题目描述
+
+	![image-20200401135715661](image/image-20200401135715661.png)
+
+- 解法
+
+	```java
+	//循环
+	public class Solution {
+	    public boolean isPowerOfThree(int n) {
+	        if (n < 1) {
+	            return false;
+	        }
+	
+	        while (n % 3 == 0) {
+	            n /= 3;
+	        }
+	
+	        return n == 1;
+	    }
+	}
+	```
+
+	```java
+	//对数运算
+	public class Solution {
+	    public boolean isPowerOfThree(int n) {
+	        return Integer.toString(n, 3).matches("^10*$");
+	    }
+	}
+	```
+
+### 8.4 罗马数字转整数
+
+- 题目描述
+
+	![image-20200401141649056](image/image-20200401141649056.png)
+
+- 解法
+
+	```java
+	class Solution {
+	    public int romanToInt(String s) {
+	        Map<String, Integer> map = new HashMap<>();
+	        map.put("I", 1);
+	        map.put("IV", 4);
+	        map.put("V", 5);
+	        map.put("IX", 9);
+	        map.put("X", 10);
+	        map.put("XL", 40);
+	        map.put("L", 50);
+	        map.put("XC", 90);
+	        map.put("C", 100);
+	        map.put("CD", 400);
+	        map.put("D", 500);
+	        map.put("CM", 900);
+	        map.put("M", 1000);
+	        
+	        int ans = 0;
+	        for(int i = 0;i < s.length();) {
+	            if(i + 1 < s.length() && map.containsKey(s.substring(i, i+2))) {
+	                ans += map.get(s.substring(i, i+2));
+	                i += 2;
+	            } else {
+	                ans += map.get(s.substring(i, i+1));
+	                i ++;
+	            }
+	        }
+	        return ans;
+	    }
+	}
+	```
+
+	
 
 ## 9. 其他 
 
+### 9.1 位1的个数
 
+- 题目描述
+
+	![image-20200330114931570](image/image-20200330114931570.png)
+
+- 解法
+
+	```java
+	
+	```
+
+	
 
 
 
