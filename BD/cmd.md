@@ -57,7 +57,7 @@
 + 创建消费者
 
 	```
-	bin/kafka-console-consumer.sh --topic hello --bootstrap-server master:9092 --from-beginning
+	bin/kafka-console-consumer.sh --topic hello --bootstrap-server localhost:9092 --from-beginning
 	```
 
 + 创建topic
@@ -69,7 +69,7 @@
 + 创建生产者
 
 	```
-	bin/kafka-console-producer.sh --topic first --broker-list master:9092
+	bin/kafka-console-producer.sh --topic sensor --broker-list localhost:9092
 	```
 
 + 查看topic

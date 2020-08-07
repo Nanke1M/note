@@ -1,4 +1,4 @@
-# HBase
+# HBase笔记
 
 ## 第1章 HBase简介
 

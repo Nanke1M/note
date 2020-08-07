@@ -22,7 +22,7 @@
 #### 2.2 Source
 ​		Source是负责接收数据到Flume Agent的组件。Source组件可以处理各种类型、各种格式的日志数据，包括**avro**（跨机器端口）、thrift、**exec**（监控文件）、jms、**spooling directory**（文件夹）、**netcat**（网络端口）、sequence generator、syslog、http、legacy。 
 
-#### 2.3 Shannel
+#### 2.3 Channel
 ​		Channel是位于Source 和Sink 之间的缓冲区。因此，Channel允许Source 和Sink运作在不同的速率上。Channel 是线程安全的，可以同时处理几个 Source 的写入操作和几个Sink的读取操作。
 
 ​		Flume自带两种Channel：**Memory Channel**和 **File Channel**以及**Kafka Channel**。
