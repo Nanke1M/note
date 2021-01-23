@@ -363,7 +363,7 @@ bin/hdfs dfs -chmod g+w /user/hive/warehouse
 
 ​		用户自定义配置文件：hive-site.xml
 
-   	 注意：用户自定义配置会覆盖默认配置。另外，Hive也会读入Hadoop的配置，因为Hive是作为Hadoop的客户端启动的，Hive的配置会覆盖Hadoop的配置。配置文件的设定对本机启动的所有Hive进程都有效。
+>  注意：用户自定义配置会覆盖默认配置。另外，Hive也会读入Hadoop的配置，因为Hive是作为Hadoop的客户端启动的，Hive的配置会覆盖Hadoop的配置。配置文件的设定对本机启动的所有Hive进程都有效。
 
 ​	（2）命令行参数方式
 
